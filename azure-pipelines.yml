@@ -1,0 +1,77 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  name: DevSecOps
+
+steps:
+- task: SonarQubePrepare@4
+  inputs:
+    SonarQube: Sonar-Hello
+    projectKey: hello-services
+    projectName: hello-services
+    projectVersion: 1.0
+
+- task: Maven@3
+  inputs:
+    mavenPomFile: '$(System.DefaultWorkingDirectory)/pom.xml'
+    goals: package
+    publishJUnitResults: true
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    javaHomeOption: JDKVersion
+    jdkVersionOption: default
+    mavenVersionOption: Default
+    mavenOptions: -Xmx1024m
+    sonarQubeRunAnalysis: true
+    isJacocoCoverageReportXML: true
+    sqMavenPluginVersionChoice: 'latest'
+    checkStyleRunAnalysis: true
+    codeCoverageToolOption: 'JaCoCo'
+    codeCoverageSourceDirectories: '$(System.DefaultWorkingDirectory)/server/target/surefire-reports'
+
+- task: SonarQubePublish@5
+  inputs:
+    pollingTimeoutSec: '300'
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: 'JaCoCo'
+    summaryFileLocation: '/home/sundarnow24/myagent/_work/7/s/CCReport43F6D5EF/*.xml'
+    reportDirectory: '/home/sundarnow24/myagent/_work/7/s/CCReport43F6D5EF/*/html'
+
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- task: Docker@2
+  inputs:
+    command: buildAndPush
+    repository: mynewregistry
+    Dockerfile: '**/Dockerfile'
+    containerRegistry: registry-connection
+    tags: '$(Build.BuildId)'
+
+
+- task: DeleteFiles@1
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: |
+        '**/s/*'
+        '**/a/*'
+        '**/b/*'
+        '**/TestResults'
+    RemoveSourceFolder: true

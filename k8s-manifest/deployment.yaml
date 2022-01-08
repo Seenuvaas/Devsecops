@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+  namespace: hello-world
+spec:
+  selector:
+    matchLabels:
+      app: hello-world
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: hello-world
+    spec:
+      containers:
+      - name: hello-world
+        image: dockerhubreg.azurecr.io/mynewregistry:$(Build.BuildId)
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        # livenessProbe:
+        #   httpGet:
+        #     path: /status
+        #     port: 5000
+        #   initialDelaySeconds: 3
+        #   periodSeconds: 3
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      imagePullSecrets:
+      - name: acr-secret
